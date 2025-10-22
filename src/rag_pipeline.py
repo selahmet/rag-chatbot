@@ -13,8 +13,8 @@ from langchain_google_genai import ChatGoogleGenerativeAI, GoogleGenerativeAIEmb
 from langchain_community.document_loaders import PyPDFLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_chroma import Chroma
-from langchain.chains import create_retrieval_chain
-from langchain.chains.combine_documents import create_stuff_documents_chain
+# from langchain.chains import create_retrieval_chain
+# from langchain.chains.combine_documents import create_stuff_documents_chain
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.documents import Document
 from dotenv import load_dotenv
@@ -105,7 +105,6 @@ class RAGPipeline:
         # Vector store
         self.vectorstore = None
         self.retriever = None
-        self.rag_chain = None
     
     def _initialize_components(self):
         """RAG bileşenlerini başlatır."""
@@ -115,26 +114,12 @@ class RAGPipeline:
             if not api_key:
                 raise ValueError("GEMINI_API_KEY environment variable not found")
             
-            # Embedding model - fallback ile
-            try:
-                self.embeddings = GoogleGenerativeAIEmbeddings(
-                    model=self.embedding_model,
-                    google_api_key=api_key
-                )
-                logger.info("Using Google Gemini embeddings")
-            except Exception as e:
-                logger.warning(f"Gemini embeddings failed: {e}")
-                logger.info("Falling back to HuggingFace embeddings")
-                # Fallback: Sentence Transformers
-                try:
-                    from langchain_community.embeddings import HuggingFaceEmbeddings
-                    self.embeddings = HuggingFaceEmbeddings(
-                        model_name="sentence-transformers/all-MiniLM-L6-v2"
-                    )
-                    logger.info("Using HuggingFace embeddings as fallback")
-                except ImportError:
-                    logger.error("sentence-transformers not installed. Install with: pip install sentence-transformers")
-                    raise e
+            # Embedding model - sadece Gemini kullan, fallback create_vectorstore'da
+            self.embeddings = GoogleGenerativeAIEmbeddings(
+                model=self.embedding_model,
+                google_api_key=api_key
+            )
+            logger.info("Using Google Gemini embeddings")
             
             # LLM
             self.llm = ChatGoogleGenerativeAI(
@@ -238,52 +223,41 @@ class RAGPipeline:
         original_embeddings = None
         if use_fallback:
             try:
-                from langchain_community.embeddings import HuggingFaceEmbeddings
+                # Yeni LangChain HuggingFace import'unu dene
+                try:
+                    from langchain_huggingface import HuggingFaceEmbeddings
+                except ImportError:
+                    # Eski import'u dene
+                    from langchain_community.embeddings import HuggingFaceEmbeddings
+                
                 original_embeddings = self.embeddings
                 self.embeddings = HuggingFaceEmbeddings(
-                    model_name="sentence-transformers/all-MiniLM-L6-v2"
+                    model_name="all-MiniLM-L6-v2"  # sentence-transformers/ prefix'i kaldırıldı
                 )
-                logger.info("Switched to HuggingFace embeddings")
-            except ImportError:
-                raise Exception("sentence-transformers paketi kurulu değil. Kurulum için: pip install sentence-transformers")
+                logger.info("Switched to HuggingFace embeddings (local)")
+                
+            except ImportError as ie:
+                logger.error(f"HuggingFace embeddings import failed: {ie}")
+                raise Exception("HuggingFace embeddings yüklenemedi. Lütfen paket güncellemelerini kontrol edin.")
+            except Exception as ee:
+                logger.error(f"HuggingFace embeddings initialization failed: {ee}")
+                raise Exception("HuggingFace embeddings başlatılamadı. Model indiriliyor olabilir, lütfen tekrar deneyin.")
         
         try:
-            # Batch processing - küçük gruplar halinde işle
-            batch_size = 10 if not use_fallback else 50  # Fallback'te daha büyük batch
+            # Basit ve direkt yaklaşım - small files için optimized
             total_docs = len(documents)
+            logger.info(f"Creating vector store with {total_docs} document chunks")
             
-            if total_docs <= batch_size:
-                # Küçük dokümanlar, direkt işle
-                self.vectorstore = Chroma.from_documents(
-                    documents=documents,
-                    embedding=self.embeddings,
-                    persist_directory=persist_directory
-                )
-            else:
-                # Büyük dokümanları batch'ler halinde işle
-                logger.info(f"Processing {total_docs} documents in batches of {batch_size}")
-                
-                # İlk batch ile vectorstore oluştur
-                first_batch = documents[:batch_size]
-                self.vectorstore = Chroma.from_documents(
-                    documents=first_batch,
-                    embedding=self.embeddings,
-                    persist_directory=persist_directory
-                )
-                
-                # Kalan batch'leri ekle
-                for i in range(batch_size, total_docs, batch_size):
-                    batch = documents[i:i + batch_size]
-                    logger.info(f"Processing batch {i//batch_size + 1}/{(total_docs-1)//batch_size + 1}")
-                    
-                    # Rate limiting - batch'ler arası bekleme (fallback'te daha az)
-                    if not use_fallback:
-                        time.sleep(2)
-                    else:
-                        time.sleep(0.1)
-                    
-                    # Batch'i ekle
-                    self.vectorstore.add_documents(batch)
+            # Rate limiting için küçük bekleme
+            if not use_fallback:
+                time.sleep(1)  # Gemini için 1 saniye
+            
+            # Dokümanları direkt işle
+            self.vectorstore = Chroma.from_documents(
+                documents=documents,
+                embedding=self.embeddings,
+                persist_directory=persist_directory
+            )
             
             # Retriever oluştur
             self.retriever = self.vectorstore.as_retriever(
@@ -327,42 +301,11 @@ class RAGPipeline:
             logger.error(f"Error loading vector store: {str(e)}")
             raise
     
-    def setup_rag_chain(self):
-        """RAG chain'ini kurar."""
-        try:
-            # System prompt
-            system_prompt = (
-                "Sen bir soru-cevap asistanısın. Aşağıdaki bağlamı kullanarak "
-                "soruları yanıtla. Eğer cevabı bilmiyorsan, bilmediğini söyle. "
-                "Yanıtını maksimum 3 cümle ile sınırla ve öz tut. "
-                "Her zaman bağlamda verilen bilgilere dayalı yanıt ver.\n\n"
-                "Bağlam: {context}"
-            )
-            
-            prompt = ChatPromptTemplate.from_messages([
-                ("system", system_prompt),
-                ("human", "{input}"),
-            ])
-            
-            # Question-answer chain
-            question_answer_chain = create_stuff_documents_chain(
-                self.llm, prompt
-            )
-            
-            # RAG chain
-            self.rag_chain = create_retrieval_chain(
-                self.retriever, question_answer_chain
-            )
-            
-            logger.info("RAG chain setup completed")
-            
-        except Exception as e:
-            logger.error(f"Error setting up RAG chain: {str(e)}")
-            raise
+
     
     def query(self, question: str) -> Dict[str, Any]:
         """
-        Soru sorar ve RAG pipeline'ından yanıt alır.
+        Soru sorar ve manual RAG pipeline'ından yanıt alır.
         
         Args:
             question: Sorulacak soru
@@ -371,24 +314,41 @@ class RAGPipeline:
             Yanıt ve metadata içeren dictionary
         """
         try:
-            if not self.rag_chain:
-                raise ValueError("RAG chain not initialized. Call setup_rag_chain() first.")
+            if not self.vectorstore:
+                raise ValueError("Vectorstore not initialized. Add documents first.")
             
-            response = self.rag_chain.invoke({"input": question})
+            # 1. Retrieval: Benzer dokümanları bul
+            docs = self.vectorstore.similarity_search(question, k=3)
+            
+            # 2. Context oluştur
+            context = "\n\n".join([doc.page_content for doc in docs])
+            
+            # 3. Prompt oluştur
+            prompt = f"""Verilen bağlam bilgisini kullanarak soruyu yanıtla. Eğer bağlam soruyu yanıtlamak için yeterli değilse, 'Verilen bağlamda bu soruyu yanıtlamak için yeterli bilgi yok' de.
+
+Bağlam:
+{context}
+
+Soru: {question}
+
+Yanıt:"""
+
+            # 4. LLM'e sor (string prompt ile)
+            response = self.llm.invoke(prompt)
+            answer = response.content if hasattr(response, 'content') else str(response)
             
             # Source documents'ları temizle
             sources = []
-            if "context" in response:
-                for doc in response["context"]:
-                    source_info = {
-                        "content": doc.page_content[:200] + "..." if len(doc.page_content) > 200 else doc.page_content,
-                        "metadata": doc.metadata
-                    }
-                    sources.append(source_info)
+            for doc in docs:
+                source_info = {
+                    "content": doc.page_content[:200] + "..." if len(doc.page_content) > 200 else doc.page_content,
+                    "metadata": doc.metadata
+                }
+                sources.append(source_info)
             
             result = {
                 "question": question,
-                "answer": response.get("answer", "Yanıt bulunamadı."),
+                "answer": answer,
                 "sources": sources,
                 "source_count": len(sources)
             }

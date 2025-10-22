@@ -243,9 +243,7 @@ class TestRAGPipelineIntegration(unittest.TestCase):
         pipeline.create_vectorstore(chunks)
         self.assertIsNotNone(pipeline.vectorstore)
         
-        # RAG chain setup
-        pipeline.setup_rag_chain()
-        self.assertIsNotNone(pipeline.chain)
+    # Manual RAG'de ayrıca bir chain gerekmiyor; vectorstore hazır olduğunda soru sorulabilir
 
 
 class TestErrorHandling(unittest.TestCase):

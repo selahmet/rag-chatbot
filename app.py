@@ -180,9 +180,6 @@ def process_uploaded_files(uploaded_files):
                 
                 # Create vector store
                 pipeline.create_vectorstore(chunks)
-                
-                # Setup RAG chain
-                pipeline.setup_rag_chain()
             
             # Cleanup temporary files
             shutil.rmtree(temp_dir)
@@ -373,7 +370,6 @@ def main():
     st.markdown("---")
     st.markdown(
         "🔗 **Proje Detayları:** [GitHub Repository](https://github.com/your-username/rag-chatbot) | "
-        "📖 **Dokümantasyon:** [chatbot.prompt.md](chatbot.prompt.md)"
     )
 
 

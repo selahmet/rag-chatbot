@@ -311,3 +311,65 @@ class Timer:
     
     def __exit__(self, *args):
         self.stop()
+
+
+def format_error_message(error: Exception) -> str:
+    """
+    Hata mesajlarını kullanıcı dostu formatta düzenler.
+    
+    Args:
+        error: Exception nesnesi
+        
+    Returns:
+        Formatlanmış hata mesajı
+    """
+    error_msg = str(error).lower()
+    
+    # Quota/Rate limit hataları
+    if "quota" in error_msg or "rate limit" in error_msg or "429" in error_msg:
+        return """
+        🚫 **API Quota Aşıldı**
+        
+        Google Gemini API'nin ücretsiz katmanındaki günlük kullanım limitine ulaştınız.
+        
+        **Çözüm önerileri:**
+        - Birkaç saat bekleyip tekrar deneyin
+        - [Google AI Studio](https://aistudio.google.com/app/apikey)'da quota durumunuzu kontrol edin
+        - Ücretli plana geçmeyi düşünün
+        - Daha küçük PDF dosyaları ile test edin
+        """
+    
+    # API key hataları
+    elif "api key" in error_msg or "authentication" in error_msg:
+        return """
+        🔑 **API Key Sorunu**
+        
+        Google Gemini API key'iniz geçersiz veya eksik.
+        
+        **Çözüm:**
+        - .env dosyasındaki GEMINI_API_KEY'i kontrol edin
+        - [Google AI Studio](https://aistudio.google.com/app/apikey)'dan yeni key alın
+        """
+    
+    # Dosya hataları
+    elif "file" in error_msg or "pdf" in error_msg:
+        return """
+        📄 **Dosya İşleme Sorunu**
+        
+        PDF dosyası işlenirken hata oluştu.
+        
+        **Çözüm:**
+        - Dosyanın bozuk olmadığını kontrol edin
+        - Daha küçük PDF dosyası deneyin
+        - Dosya isminde özel karakter olmamasına dikkat edin
+        """
+    
+    # Genel hata
+    else:
+        return f"""
+        ❌ **Beklenmeyen Hata**
+        
+        {str(error)}
+        
+        Bu sorunu geliştirici ekibe bildirin.
+        """

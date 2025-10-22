@@ -22,7 +22,7 @@ sys.path.append(str(project_root))
 # Local imports
 from src.utils import (
     setup_logging, check_api_key, create_session_id, 
-    truncate_text, sanitize_filename, Timer
+    truncate_text, sanitize_filename, Timer, format_error_message
 )
 from src.document_processor import DocumentProcessor, format_file_size
 
@@ -194,7 +194,8 @@ def process_uploaded_files(uploaded_files):
             st.success(f"✅ {len(documents)} sayfa, {len(chunks)} parça işlendi. ({timer.elapsed():.2f}s)")
             
     except Exception as e:
-        st.error(f"❌ Doküman işleme hatası: {str(e)}")
+        error_msg = format_error_message(e)
+        st.error(error_msg)
         if 'temp_dir' in locals() and os.path.exists(temp_dir):
             shutil.rmtree(temp_dir)
 

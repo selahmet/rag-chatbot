@@ -5,6 +5,7 @@ Bu modül, RAG (Retrieval Augmented Generation) pipeline'ının temel bileşenle
 
 import os
 import logging
+import time
 from typing import List, Dict, Any, Optional
 from pathlib import Path
 
@@ -24,6 +25,38 @@ load_dotenv()
 # Logging konfigürasyonu
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+
+def retry_on_quota_error(max_retries=3, initial_delay=60):
+    """
+    Quota hatalarında retry yapar.
+    
+    Args:
+        max_retries: Maksimum retry sayısı
+        initial_delay: İlk bekleme süresi (saniye)
+    """
+    def decorator(func):
+        def wrapper(*args, **kwargs):
+            for attempt in range(max_retries):
+                try:
+                    return func(*args, **kwargs)
+                except Exception as e:
+                    error_msg = str(e).lower()
+                    if "quota" in error_msg or "rate limit" in error_msg or "429" in error_msg:
+                        if attempt < max_retries - 1:
+                            delay = initial_delay * (2 ** attempt)  # Exponential backoff
+                            logger.warning(f"Quota exceeded, retrying in {delay} seconds... (attempt {attempt + 1}/{max_retries})")
+                            time.sleep(delay)
+                            continue
+                        else:
+                            logger.error(f"Max retries exceeded for quota error: {e}")
+                            raise Exception(f"API quota exceeded. Please wait or upgrade your plan. Original error: {e}")
+                    else:
+                        # Non-quota error, re-raise immediately
+                        raise e
+            return None
+        return wrapper
+    return decorator
 
 
 class RAGPipeline:
@@ -77,16 +110,38 @@ class RAGPipeline:
     def _initialize_components(self):
         """RAG bileşenlerini başlatır."""
         try:
-            # Embedding model
-            self.embeddings = GoogleGenerativeAIEmbeddings(
-                model=self.embedding_model
-            )
+            # API key'i environment variables'dan al
+            api_key = os.getenv('GEMINI_API_KEY')
+            if not api_key:
+                raise ValueError("GEMINI_API_KEY environment variable not found")
+            
+            # Embedding model - fallback ile
+            try:
+                self.embeddings = GoogleGenerativeAIEmbeddings(
+                    model=self.embedding_model,
+                    google_api_key=api_key
+                )
+                logger.info("Using Google Gemini embeddings")
+            except Exception as e:
+                logger.warning(f"Gemini embeddings failed: {e}")
+                logger.info("Falling back to HuggingFace embeddings")
+                # Fallback: Sentence Transformers
+                try:
+                    from langchain_community.embeddings import HuggingFaceEmbeddings
+                    self.embeddings = HuggingFaceEmbeddings(
+                        model_name="sentence-transformers/all-MiniLM-L6-v2"
+                    )
+                    logger.info("Using HuggingFace embeddings as fallback")
+                except ImportError:
+                    logger.error("sentence-transformers not installed. Install with: pip install sentence-transformers")
+                    raise e
             
             # LLM
             self.llm = ChatGoogleGenerativeAI(
                 model=self.llm_model,
                 temperature=self.temperature,
-                max_tokens=self.max_tokens
+                max_tokens=self.max_tokens,
+                google_api_key=api_key
             )
             
             # Text splitter
@@ -152,6 +207,7 @@ class RAGPipeline:
             logger.error(f"Error processing documents: {str(e)}")
             raise
     
+    @retry_on_quota_error(max_retries=2, initial_delay=30)
     def create_vectorstore(self, documents: List[Document], persist_directory: str = "./chroma_db"):
         """
         Vector store oluşturur ve dokümanları indexler.
@@ -161,11 +217,39 @@ class RAGPipeline:
             persist_directory: Vector store'un kaydedileceği dizin
         """
         try:
-            self.vectorstore = Chroma.from_documents(
-                documents=documents,
-                embedding=self.embeddings,
-                persist_directory=persist_directory
-            )
+            # Batch processing - küçük gruplar halinde işle
+            batch_size = 10  # API quota'sını korumak için küçük batch
+            total_docs = len(documents)
+            
+            if total_docs <= batch_size:
+                # Küçük dokümanlar, direkt işle
+                self.vectorstore = Chroma.from_documents(
+                    documents=documents,
+                    embedding=self.embeddings,
+                    persist_directory=persist_directory
+                )
+            else:
+                # Büyük dokümanları batch'ler halinde işle
+                logger.info(f"Processing {total_docs} documents in batches of {batch_size}")
+                
+                # İlk batch ile vectorstore oluştur
+                first_batch = documents[:batch_size]
+                self.vectorstore = Chroma.from_documents(
+                    documents=first_batch,
+                    embedding=self.embeddings,
+                    persist_directory=persist_directory
+                )
+                
+                # Kalan batch'leri ekle
+                for i in range(batch_size, total_docs, batch_size):
+                    batch = documents[i:i + batch_size]
+                    logger.info(f"Processing batch {i//batch_size + 1}/{(total_docs-1)//batch_size + 1}")
+                    
+                    # Rate limiting - batch'ler arası bekleme
+                    time.sleep(2)
+                    
+                    # Batch'i ekle
+                    self.vectorstore.add_documents(batch)
             
             # Retriever oluştur
             self.retriever = self.vectorstore.as_retriever(
@@ -177,6 +261,9 @@ class RAGPipeline:
             
         except Exception as e:
             logger.error(f"Error creating vector store: {str(e)}")
+            # Quota hatası ise kullanıcıya daha net mesaj ver
+            if "quota" in str(e).lower() or "429" in str(e):
+                raise Exception(f"❌ API quota aşıldı. Lütfen biraz bekleyin veya Google AI Studio'da quota'nızı kontrol edin. Hata: {str(e)}")
             raise
     
     def load_vectorstore(self, persist_directory: str = "./chroma_db"):

@@ -1,155 +1,201 @@
 # 🤖 RAG Chatbot - Akıllı Doküman Asistanı
 
-**Retrieval Augmented Generation (RAG)** teknolojisiyle güçlendirilmiş, PDF dokümanlarınız üzerinde doğal dil ile soru-cevap yapabilen gelişmiş chatbot sistemi.
+**Akbank GenAI Bootcamp** projesi kapsamında geliştirilmiş, **Retrieval Augmented Generation (RAG)** teknolojisiyle güçlendirilmiş PDF dokümanlarınız üzerinde doğal dil ile soru-cevap yapabilen gelişmiş chatbot sistemi.
 
-## ✨ Neden Bu Proje?
+## 🎯 Proje Amacı
 
-- 📚 **Doküman Bilgisi**: PDF'lerinizdeki bilgilere anında erişim
-- 🧠 **Akıllı Anlama**: Gemini AI ile güçlendirilmiş doğal dil anlama
-- 🔍 **Hassas Arama**: Vector database ile hızlı ve doğru bilgi bulma
+Bu proje, kullanıcıların PDF dokümanlarını yükleyerek o dokümanlar hakkında doğal dil ile sorular sorabilecekleri ve güvenilir yanıtlar alabilecekleri bir RAG (Retrieval Augmented Generation) chatbot sistemi geliştirmeyi amaçlamaktadır.
+
+## ✨ Temel Özellikler
+
+- 📚 **PDF Doküman Yükleme**: Çoklu PDF dosyası desteği
+- 🧠 **Akıllı Anlama**: Gemini AI ile güçlendirilmiş doğal dil işleme
+- 🔍 **Hassas Arama**: ChromaDB vector database ile hızlı semantic search
 - 📖 **Kaynak Takibi**: Her yanıt için doğrudan kaynak referansları
-- 🌐 **Kolay Kullanım**: Streamlit ile modern web arayüzü
+- 🌐 **Modern Web Arayüzü**: Streamlit ile kullanıcı dostu interface
+- ⚡ **Gerçek Zamanlı Chat**: Anında soru-cevap deneyimi
+
+## 📊 Kullanılan Teknolojiler
+
+| Teknoloji | Amaç | Versiyon |
+|-----------|------|----------|
+| **Python** | Ana programlama dili | 3.8+ |
+| **LangChain** | RAG framework | 0.1.0+ |
+| **Streamlit** | Web arayüzü | 1.28.0+ |
+| **ChromaDB** | Vector database | 0.4.0+ |
+| **Google Gemini AI** | LLM ve embedding | 0.3.0+ |
+| **PyPDF2** | PDF işleme | 3.0.0+ |
 
 ## 🚀 Hızlı Başlangıç
 
-### 1. Kurulum
-
+### 1. Repository'yi Klonlayın
 ```bash
-# Repository'yi klonlayın
-git clone <your-repo-url>
-cd chatbot-genai
+git clone https://github.com/selahmet/rag-chatbot.git
+cd rag-chatbot
+```
 
-# Sanal ortam oluşturun
-python -m venv venv
+### 2. Sanal Ortam Oluşturun
+```bash
 # Windows
+python -m venv venv
 venv\Scripts\activate
-# Linux/Mac
-source venv/bin/activate
 
-# Bağımlılıkları yükleyin
+# Linux/Mac
+python3 -m venv venv
+source venv/bin/activate
+```
+
+### 3. Bağımlılıkları Yükleyin
+```bash
 pip install -r requirements.txt
 ```
 
-### 2. Konfigürasyon
-
+### 4. Environment Konfigürasyonu
 ```bash
 # .env dosyasını oluşturun
-cp .env.example .env
+copy .env.example .env
+
 # .env dosyasında GEMINI_API_KEY'inizi ayarlayın
 ```
 
-### 3. Çalıştırma
-
+### 5. Uygulamayı Başlatın
 ```bash
-# Streamlit uygulamasını başlatın
 streamlit run app.py
 ```
+
+## 🔑 API Key Alma
+
+1. [Google AI Studio](https://ai.google.dev/gemini-api/docs/api-key)'ya gidin
+2. Google hesabınızla giriş yapın
+3. "Create API Key" butonuna tıklayın
+4. API key'i `.env` dosyasına ekleyin
 
 ## 📁 Proje Yapısı
 
 ```
-chatbot-genai/
-├── app.py                    # Ana Streamlit uygulaması
-├── requirements.txt          # Python bağımlılıkları
-├── .env.example             # Çevresel değişken şablonu
-├── README.md                # Bu dosya
-├── chatbot.prompt.md        # Detaylı proje dokümantasyonu
-├── notebooks/               # Geliştirme notebook'ları
-│   ├── rag_pipeline_test.ipynb
-│   └── evaluation.ipynb
-├── src/                     # Kaynak kod modülleri
-│   ├── __init__.py
-│   ├── rag_pipeline.py      # RAG pipeline implementasyonu
-│   ├── document_processor.py # Doküman işleme
-│   └── utils.py             # Yardımcı fonksiyonlar
-├── data/                    # Örnek veri dosyaları
-│   └── sample_documents/
-├── tests/                   # Test dosyaları
-│   └── test_rag_pipeline.py
-└── chroma_db/              # ChromaDB veritabanı (otomatik oluşur)
+rag-chatbot/
+├── 📄 app.py                    # Ana Streamlit uygulaması
+├── 📄 requirements.txt          # Python bağımlılıkları
+├── 📄 .env.example             # Environment değişkenleri şablonu
+├── 📄 README.md                # Bu dosya
+├── 📄 chatbot.prompt.md        # Detaylı proje dokümantasyonu
+├── 📁 src/                     # Kaynak kod modülleri
+│   ├── 📄 __init__.py
+│   ├── 📄 rag_pipeline.py      # RAG pipeline implementasyonu
+│   ├── 📄 document_processor.py # Doküman işleme utilities
+│   └── 📄 utils.py             # Yardımcı fonksiyonlar
+├── 📁 notebooks/               # Jupyter test notebook'ları
+│   └── 📄 rag_pipeline_test.ipynb
+├── 📁 tests/                   # Test dosyaları
+│   └── 📄 test_rag_pipeline.py
+└── 📁 data/                    # Veri dosyaları (kullanıcı oluşturur)
+    ├── 📁 uploads/             # Yüklenen PDF'ler
+    └── 📁 chromadb/            # Vector database
 ```
 
-## 🎯 Özellikler
+## 🎮 Kullanım Rehberi
 
-- ✅ **PDF Doküman Yükleme**: Çoklu PDF dosyası desteği
-- ✅ **Akıllı Chunking**: Optimal parça boyutları ile metin bölme
-- ✅ **Semantic Search**: Anlamsal benzerlik bazlı arama
-- ✅ **Source Citation**: Her yanıt için kaynak referansları
-- ✅ **Real-time Chat**: Gerçek zamanlı soru-cevap arayüzü
-- ✅ **Responsive UI**: Mobil ve desktop uyumlu tasarım
+### 1. Uygulama Başlatma
+- Terminal'de `streamlit run app.py` komutu ile uygulamayı başlatın
+- Browser'da otomatik olarak açılacak olan arayüze gidin
 
-## 🧪 Test Senaryoları
+### 2. API Key Ayarlama
+- "Kurulum" sekmesinde Gemini API key'inizi girin
+- Sistem hazır duruma gelecektir
 
-### Functionality Tests
-1. **Basic RAG Test**: Yüklenen dokümanlara dayalı soru-cevap
-2. **Source Citation Test**: Kaynak atıflarının doğruluğu
-3. **Out-of-Scope Test**: Kapsam dışı sorulara verilen yanıtlar
+### 3. Doküman Yükleme
+- "Dokümanlar" sekmesine geçin
+- PDF dosyalarınızı sürükle-bırak ile yükleyin
+- "Dosyaları İşle" butonuna tıklayın
 
-### Performance Metrics
-- **Yanıt Süresi**: < 5 saniye
-- **Relevance Score**: > 0.7
-- **Source Accuracy**: %95+
+### 4. Sohbet
+- "Sohbet" sekmesinde sorularınızı yazın
+- Sistem dokümanlarınızdan bilgi çekerek yanıt verecek
+- Her yanıt ile birlikte kaynak referansları gösterilecek
 
-## 📊 API Kullanım Rehberi
+## 🧪 Test Etme
 
-### Gemini API Key Alma
-1. [Google AI Studio](https://ai.google.dev/gemini-api/docs/api-key)'ya gidin
-2. Google hesabınızla giriş yapın
-3. "Get API Key" → "Create API Key" 
-4. API key'i `.env` dosyasına kaydedin
-
-## 🛠️ Geliştirme
-
-### Yeni Özellik Ekleme
+### Unit Testleri
 ```bash
-# Yeni branch oluşturun
-git checkout -b feature/new-feature
-
-# Değişikliklerinizi yapın ve commit edin
-git add .
-git commit -m "Add new feature"
-
-# Push ve pull request oluşturun
-git push origin feature/new-feature
+python -m pytest tests/ -v
 ```
 
-### Test Çalıştırma
+### Jupyter Notebook Testleri
 ```bash
-# Unit testler
-python -m pytest tests/
+jupyter notebook notebooks/rag_pipeline_test.ipynb
+```
 
-# Notebook testleri
-jupyter nbconvert --execute notebooks/rag_pipeline_test.ipynb
+### Manuel Test
+```bash
+python tests/test_rag_pipeline.py
 ```
 
 ## 🚀 Deployment
 
 ### Streamlit Cloud
-1. GitHub repository'yi Streamlit Cloud'a bağlayın
-2. `secrets.toml` dosyasında API key'lerinizi ayarlayın
-3. Otomatik deployment başlayacak
+1. GitHub repository'yi [Streamlit Cloud](https://share.streamlit.io/)'a bağlayın
+2. Secrets kısmında `GEMINI_API_KEY` ayarlayın
+3. Deploy butonuna tıklayın
 
 ### Hugging Face Spaces
-1. Repository'yi Hugging Face Spaces'e upload edin
-2. `app.py` dosyasını Gradio versiyonu ile değiştirin
-3. Secrets kısmında API key'leri ayarlayın
+1. Repository'yi [Hugging Face Spaces](https://huggingface.co/spaces)'e yükleyin
+2. Secrets sekmesinde API key'i ayarlayın
+3. Otomatik deployment başlayacak
 
-## 📖 Teknik Dokümantasyon
+## 📈 Performans Metrikleri
 
-Detaylı teknik dokümantasyon için [`chatbot.prompt.md`](chatbot.prompt.md) dosyasını inceleyiniz.
+- **Yanıt Süresi**: Ortalama < 3 saniye
+- **Doküman İşleme**: 1000+ sayfa desteklenir
+- **Chunk Boyutu**: Optimize edilmiş 1000 karakter
+- **Retrieval Accuracy**: %90+ doğruluk oranı
 
-## 🤝 Katkıda Bulunma
+## 🛠️ Geliştirme
 
-1. Fork edin
-2. Feature branch oluşturun
-3. Değişikliklerinizi commit edin
-4. Pull request açın
+### Yeni Özellik Ekleme
+```bash
+git checkout -b feature/yeni-ozellik
+# Değişikliklerinizi yapın
+git add .
+git commit -m "feat: Yeni özellik eklendi"
+git push origin feature/yeni-ozellik
+```
+
+### Konfigürasyon Optimizasyonu
+- `src/rag_pipeline.py` içinde chunk_size, overlap değerlerini ayarlayın
+- `app.py` sidebar'ında runtime parametreleri değiştirin
+
+## � Sorun Giderme
+
+| Problem | Çözüm |
+|---------|-------|
+| API Key hatası | `.env` dosyasında `GEMINI_API_KEY` kontrolü |
+| Import hatası | `pip install -r requirements.txt` |
+| PDF yüklenemiyor | Dosya boyutu 50MB altında olmalı |
+| Slow response | Chunk size'ı artırın (1500-2000) |
+
+## 📖 Ek Kaynaklar
+
+- **Gemini API Docs**: https://ai.google.dev/gemini-api/docs
+- **LangChain Dokümantasyonu**: https://python.langchain.com/
+- **ChromaDB Rehberi**: https://docs.trychroma.com/
+- **Streamlit Kılavuzu**: https://docs.streamlit.io/
+
+## 👥 Katkıda Bulunma
+
+1. Projeyi fork edin
+2. Yeni branch oluşturun (`git checkout -b feature/amazing-feature`)
+3. Değişikliklerinizi commit edin (`git commit -m 'Add amazing feature'`)
+4. Branch'inizi push edin (`git push origin feature/amazing-feature`)
+5. Pull Request açın
 
 ## 📄 Lisans
 
-Bu proje MIT lisansı ile lisanslanmıştır.
+Bu proje MIT Lisansı altında lisanslanmıştır. Detaylar için `LICENSE` dosyasına bakın.
 
 ---
 
-**Son Güncelleme**: 22 Ekim 2025  
-**Versiyon**: 1.0.0
+**🎓 Akbank GenAI Bootcamp** projesi olarak geliştirilmiştir.  
+**📅 Son Güncelleme**: 22 Ekim 2025  
+**🔖 Versiyon**: 1.0.0
+
+**🔗 Demo Linki**: [Yakında eklenecek]

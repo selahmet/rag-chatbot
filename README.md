@@ -198,4 +198,4 @@ Bu proje MIT Lisansı altında lisanslanmıştır. Detaylar için `LICENSE` dosy
 **📅 Son Güncelleme**: 22 Ekim 2025  
 **🔖 Versiyon**: 1.0.0
 
-**🔗 Demo Linki**: [(https://rag-chatbot-8ukxivyu8gxenvsnzqolvr.streamlit.app/)]
+**🔗 Demo Linki**: [(https://rag-chatbot-tpbcaeqya7v5bt6dppjflv.streamlit.app/)]

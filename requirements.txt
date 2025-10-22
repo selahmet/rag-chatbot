@@ -1,4 +1,4 @@
-# RAG Chatbot Requirements - Simplified & Stable
+# RAG Chatbot Requirements - Cloud Compatible
 langchain==0.3.5
 langchain-community==0.3.3
 langchain-google-genai==2.0.3
@@ -7,22 +7,18 @@ langchain-text-splitters==0.3.2
 streamlit>=1.28.0
 pypdf>=3.15.0
 python-dotenv>=1.0.0
-chromadb>=0.5.0
+chromadb==0.5.23
 
 # Google AI - Stable versions
 google-generativeai==0.8.0
 
 # Data Processing
 pandas>=2.0.0
-numpy>=1.24.0
+numpy>=1.24.0,<2.0.0
 
-# File Processing
-PyPDF2>=3.0.0
-
-# Fallback Embeddings (optional)
-sentence-transformers>=2.2.0
-langchain-huggingface>=1.0.0
-huggingface_hub>=0.34,<1.0
+# Fallback Embeddings (optional - install manually if needed)
+# sentence-transformers>=2.2.0
+# huggingface_hub>=0.34,<1.0
 
 # Additional Web Frameworks (optional)
-gradio>=4.0.0
+# gradio>=4.0.0

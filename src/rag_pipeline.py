@@ -238,10 +238,13 @@ class RAGPipeline:
                 
             except ImportError as ie:
                 logger.error(f"HuggingFace embeddings import failed: {ie}")
-                raise Exception("HuggingFace embeddings yüklenemedi. Lütfen paket güncellemelerini kontrol edin.")
+                raise Exception(
+                    "❌ HuggingFace embeddings paketi kurulu değil. "
+                    "Fallback için şu paketleri kurun: pip install sentence-transformers langchain-huggingface"
+                )
             except Exception as ee:
                 logger.error(f"HuggingFace embeddings initialization failed: {ee}")
-                raise Exception("HuggingFace embeddings başlatılamadı. Model indiriliyor olabilir, lütfen tekrar deneyin.")
+                raise Exception(f"HuggingFace embeddings başlatılamadı: {str(ee)}")
         
         try:
             # Basit ve direkt yaklaşım - small files için optimized

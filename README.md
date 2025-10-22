@@ -197,5 +197,3 @@ Bu proje MIT Lisansı altında lisanslanmıştır. Detaylar için `LICENSE` dosy
 **🎓 Akbank GenAI Bootcamp** projesi olarak geliştirilmiştir.  
 **📅 Son Güncelleme**: 22 Ekim 2025  
 **🔖 Versiyon**: 1.0.0
-
-**🔗 Demo Linki**: [(https://rag-chatbot-tpbcaeqya7v5bt6dppjflv.streamlit.app/)]

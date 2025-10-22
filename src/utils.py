@@ -327,17 +327,30 @@ def format_error_message(error: Exception) -> str:
     
     # Quota/Rate limit hataları
     if "quota" in error_msg or "rate limit" in error_msg or "429" in error_msg:
-        return """
-        🚫 **API Quota Aşıldı**
-        
-        Google Gemini API'nin ücretsiz katmanındaki günlük kullanım limitine ulaştınız.
-        
-        **Çözüm önerileri:**
-        - Birkaç saat bekleyip tekrar deneyin
-        - [Google AI Studio](https://aistudio.google.com/app/apikey)'da quota durumunuzu kontrol edin
-        - Ücretli plana geçmeyi düşünün
-        - Daha küçük PDF dosyaları ile test edin
-        """
+        if "huggingface" in error_msg or "fallback" in error_msg:
+            return """
+            � **Fallback Embeddings Kullanıldı**
+            
+            Gemini API quota'sı aşıldığı için HuggingFace embeddings kullanılıyor.
+            
+            **Durum:** Sistem çalışıyor, performans biraz daha yavaş olabilir.
+            """
+        else:
+            return """
+            �🚫 **API Quota Aşıldı - Fallback Aktif**
+            
+            Google Gemini API quota'sı aşıldı, alternatif embedding sistemi devreye alınıyor.
+            
+            **Sistem durumu:**
+            - ✅ Sistem çalışmaya devam ediyor
+            - 🔄 HuggingFace embeddings kullanılıyor  
+            - ⚡ Biraz daha yavaş olabilir
+            
+            **Çözüm önerileri:**
+            - Sistem şu an çalışır durumda, devam edebilirsiniz
+            - [Google AI Studio](https://aistudio.google.com/app/apikey)'da quota durumunuzu kontrol edin
+            - Ücretli plana geçerek daha hızlı performance alın
+            """
     
     # API key hataları
     elif "api key" in error_msg or "authentication" in error_msg:

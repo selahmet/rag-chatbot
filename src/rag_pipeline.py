@@ -207,7 +207,6 @@ class RAGPipeline:
             logger.error(f"Error processing documents: {str(e)}")
             raise
     
-    @retry_on_quota_error(max_retries=2, initial_delay=30)
     def create_vectorstore(self, documents: List[Document], persist_directory: str = "./chroma_db"):
         """
         Vector store oluşturur ve dokümanları indexler.
@@ -216,9 +215,41 @@ class RAGPipeline:
             documents: Indexlenecek dokümanlar
             persist_directory: Vector store'un kaydedileceği dizin
         """
+        # Önce Gemini ile dene, quota hatası varsa fallback'e geç
+        try:
+            return self._create_vectorstore_with_retry(documents, persist_directory, use_fallback=False)
+        except Exception as e:
+            error_msg = str(e).lower()
+            if "quota" in error_msg or "429" in error_msg or "rate limit" in error_msg:
+                logger.warning("Gemini quota exceeded, switching to HuggingFace embeddings fallback")
+                try:
+                    return self._create_vectorstore_with_retry(documents, persist_directory, use_fallback=True)
+                except Exception as fallback_error:
+                    logger.error(f"Fallback embedding also failed: {fallback_error}")
+                    raise Exception(f"❌ Hem Gemini hem de fallback embedding başarısız oldu. Lütfen daha sonra tekrar deneyin.")
+            else:
+                raise e
+    
+    def _create_vectorstore_with_retry(self, documents: List[Document], persist_directory: str, use_fallback: bool = False):
+        """
+        Vector store oluşturur - retry mekanizması ile.
+        """
+        # Fallback embedding kullanılacaksa değiştir
+        original_embeddings = None
+        if use_fallback:
+            try:
+                from langchain_community.embeddings import HuggingFaceEmbeddings
+                original_embeddings = self.embeddings
+                self.embeddings = HuggingFaceEmbeddings(
+                    model_name="sentence-transformers/all-MiniLM-L6-v2"
+                )
+                logger.info("Switched to HuggingFace embeddings")
+            except ImportError:
+                raise Exception("sentence-transformers paketi kurulu değil. Kurulum için: pip install sentence-transformers")
+        
         try:
             # Batch processing - küçük gruplar halinde işle
-            batch_size = 10  # API quota'sını korumak için küçük batch
+            batch_size = 10 if not use_fallback else 50  # Fallback'te daha büyük batch
             total_docs = len(documents)
             
             if total_docs <= batch_size:
@@ -245,8 +276,11 @@ class RAGPipeline:
                     batch = documents[i:i + batch_size]
                     logger.info(f"Processing batch {i//batch_size + 1}/{(total_docs-1)//batch_size + 1}")
                     
-                    # Rate limiting - batch'ler arası bekleme
-                    time.sleep(2)
+                    # Rate limiting - batch'ler arası bekleme (fallback'te daha az)
+                    if not use_fallback:
+                        time.sleep(2)
+                    else:
+                        time.sleep(0.1)
                     
                     # Batch'i ekle
                     self.vectorstore.add_documents(batch)
@@ -257,14 +291,14 @@ class RAGPipeline:
                 search_kwargs={"k": self.retrieval_k}
             )
             
-            logger.info(f"Vector store created with {len(documents)} documents")
+            embedding_type = "HuggingFace" if use_fallback else "Gemini"
+            logger.info(f"Vector store created with {len(documents)} documents using {embedding_type} embeddings")
             
         except Exception as e:
-            logger.error(f"Error creating vector store: {str(e)}")
-            # Quota hatası ise kullanıcıya daha net mesaj ver
-            if "quota" in str(e).lower() or "429" in str(e):
-                raise Exception(f"❌ API quota aşıldı. Lütfen biraz bekleyin veya Google AI Studio'da quota'nızı kontrol edin. Hata: {str(e)}")
-            raise
+            # Fallback durumunda original embedding'i geri yükle
+            if use_fallback and original_embeddings:
+                self.embeddings = original_embeddings
+            raise e
     
     def load_vectorstore(self, persist_directory: str = "./chroma_db"):
         """

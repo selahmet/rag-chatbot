@@ -10,6 +10,10 @@ import tempfile
 import shutil
 from pathlib import Path
 from typing import List, Dict, Any, Optional
+from dotenv import load_dotenv
+
+# .env dosyasını yükle
+load_dotenv()
 
 # Proje dizinini sys.path'e ekle
 project_root = Path(__file__).parent

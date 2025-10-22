@@ -1,23 +1,24 @@
-# RAG Chatbot Requirements - Core Dependencies
-langchain>=0.1.0
-langchain-community
-langchain-google-genai
-langchain-chroma
+# RAG Chatbot Requirements - Core Dependencies (Updated for compatibility)
+langchain>=1.0.0
+langchain-community>=0.3.0
+langchain-google-genai>=3.0.0
+langchain-chroma>=1.0.0
+langchain-text-splitters>=1.0.0
 streamlit>=1.28.0
 pypdf>=3.15.0
-python-dotenv
-sentence-transformers
-chromadb>=0.4.0
-google-generativeai>=0.3.0
+python-dotenv>=1.0.0
+chromadb>=1.0.0
+
+# Google AI
+google-generativeai>=0.8.0
+google-ai-generativelanguage>=0.9.0
 
 # Data Processing
 pandas>=2.0.0
 numpy>=1.24.0
 
+# File Processing
+PyPDF2>=3.0.0
+
 # Additional Web Frameworks (optional)
 gradio>=4.0.0
-
-# Advanced Features (optional)
-faiss-cpu
-transformers
-torch
